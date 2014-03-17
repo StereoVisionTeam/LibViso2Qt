@@ -1,0 +1,33 @@
+#ifndef ERRORCODES_H
+#define ERRORCODES_H
+
+//Adding image to odometry
+#define EC_OK 0
+#define EC_VISO_IS_NULL 01
+#define EC_NO_CALIBRATION 02
+#define EC_NO_IMAGE_SIZE 03
+#define EC_BAD_IMAGE_SIZE 04
+
+//Viso object
+#define EC_LOW_NUMBER_OF_MATCHES 06
+#define EC_NORMALIZE_FEATURE_POINTS_FAIL 07
+#define EC_NOT_ENOUGH_INLIERS 08
+#define EC_NOT_ENOUGH_XPLANE_POINTS 09
+#define EC_LITTLE_MOTION 10
+
+//
+#define EC_BAD_SIZE 11
+
+//Calibration
+#define EC_NO_PATTERN_SIZE 12
+#define EC_BAD_CORNERS 13
+#define EC_NOT_ENOUGHT_SAMPLES 14
+
+#define EC_OPENCV_BAD_CALIBRATION 15
+#define EC_NO_IMAGE 16
+#define EC_BAD_FILE_PATH 17
+
+#endif // ERRORCODES_H
+
+
+
