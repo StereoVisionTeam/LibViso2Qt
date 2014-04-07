@@ -29,15 +29,15 @@ VisualOdometryMono::VisualOdometryMono (parameters param) : param(param), Visual
 VisualOdometryMono::~VisualOdometryMono () {
 }
 
-bool VisualOdometryMono::process (uint8_t *I,int32_t* dims, int &errorCode, bool replace) {
+bool VisualOdometryMono::process (uint8_t *I,int32_t* dims, u_int8_t &errorCode, bool replace) {
   matcher->pushBack(I,dims,replace);
   matcher->matchFeatures(0);
   matcher->bucketFeatures(param.bucket.max_features,param.bucket.bucket_width,param.bucket.bucket_height);                          
   p_matched = matcher->getMatches();
-  return updateMotion();
+  return updateMotion(errorCode);
 }
 
-vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_matched) {
+vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_matched, u_int8_t &errorCode) {
 
   // get number of matches
   int32_t N = p_matched.size();
@@ -108,7 +108,7 @@ vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_ma
   
   // we need at least 10 points to proceed
   if (X_plane.n<10){
-      errorCode = ODOMETRY_ERROR_NOT_ENOUGH_XPLANE_POINTS;
+      errorCode = EC_NOT_ENOUGH_XPLANE_POINTS;
     return vector<double>();
   }
   // get elements closer than median
@@ -117,7 +117,7 @@ vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_ma
   
   // return error on large median (litte motion)
   if (median>param.motion_threshold){
-      errorCode = ODOMETRY_ERROR_LITTLE_MOTION;
+      errorCode = EC_LITTLE_MOTION;
     return vector<double>();
   }
   
@@ -165,7 +165,7 @@ vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_ma
   tr_delta[4] = t.val[1][0];
   tr_delta[5] = t.val[2][0];
 
-  errorCode = ODOMETRY_ERROR_NONE;
+  errorCode = EC_OK;
   return tr_delta;
 
 }

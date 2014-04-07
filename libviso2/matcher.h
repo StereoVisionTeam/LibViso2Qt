@@ -62,7 +62,7 @@ public:
       outlier_disp_tolerance = 5;
       outlier_flow_tolerance = 5;
       multi_stage            = 1;
-      half_resolution        = 0;
+      half_resolution        = 1;
       refinement             = 1;
     }
   };
@@ -165,7 +165,7 @@ private:
   };
   
   // computes the address offset for coordinates u,v of an image of given width
-  inline int32_t getAddressOffsetImage (const int32_t& u,const int32_t& v,const int32_t& width) {
+  inline int32_t getAddressOffsetImage (const int32_t& u,const int32_t& v,const int32_t& width){
     return v*width+u;
   }
 

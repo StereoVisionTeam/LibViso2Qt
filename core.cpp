@@ -7,7 +7,6 @@ Core::Core(QObject *parent) :
   QObject(parent),
   pose(Matrix::eye(4))
 {
-  isSetImageSizeDone = false;
   calibrationSamplesCounter = 0;
   goodSamplesCounter = 0;
   isCalibrationDone = false;
@@ -19,23 +18,21 @@ Core::Core(QObject *parent) :
   viso = NULL;
 }
 
-bool Core::addSampleToCalibration(Mat &calibrationImage, int &errorCode){
+bool Core::addSampleToCalibration(Mat &calibrationImage, u_int8_t &errorCode){
 
   if(!isSetPatternSizeDone){
     errorCode = EC_NO_PATTERN_SIZE ;
     return false;
   }
-  if(!isSetImageSizeDone){
-    errorCode = EC_NO_IMAGE_SIZE ;
-    return false;
-  }
-  if(calibrationImage.cols != imageSize.width || calibrationImage.rows!=imageSize.height){
-    errorCode = EC_BAD_SIZE ;
-    return false;
-  }
-
+  if(calibrationImage.data == NULL){
+      errorCode = EC_NO_IMAGE;
+      return false;
+    }
+  imageSize = calibrationImage.size();
     cv::vector<Point2f> corners;
     bool result;
+    if(calibrationImage.channels()!=1)
+      cvtColor(calibrationImage,calibrationImage, CV_RGB2GRAY);
     result = findChessboardCorners(calibrationImage,
                                    patternSize,
                                    corners,
@@ -56,7 +53,7 @@ bool Core::addSampleToCalibration(Mat &calibrationImage, int &errorCode){
   errorCode = EC_OK ;
   return true;
 }
-bool Core::calibrateCamera(std::string outputURL, int &errorCode){
+bool Core::calibrateCamera(std::string outputURL, u_int8_t &errorCode){
 
   if(goodSamplesCounter<minimumSamplesForCalibration){
     errorCode = EC_NOT_ENOUGHT_SAMPLES;
@@ -77,14 +74,16 @@ bool Core::calibrateCamera(std::string outputURL, int &errorCode){
   isCalibrationDone = cv::calibrateCamera(objectPoints,imagePoints,imageSize,cameraMatrix,distCoeffs,rvec,tvec);
 
   if(isCalibrationDone){
-    saveCalibration(outputURL);
+    if(!saveCalibration(outputURL, errorCode))
+    return false;
+
     errorCode = EC_OK;
     return true;
   }
   errorCode = EC_OPENCV_BAD_CALIBRATION ;
   return false;
 }
-bool Core::calibrateFromImages(std::string inputImagesPathURL , std::string outputCalibrationDataURL, int numberOfSamples, int &errorCode){
+bool Core::calibrateFromImages(std::string inputImagesPathURL , std::string outputCalibrationDataURL, int numberOfSamples, u_int8_t &errorCode){
 
   //Kalibracja z pliku
   for(int i=1; i<numberOfSamples;i++)
@@ -99,12 +98,12 @@ bool Core::calibrateFromImages(std::string inputImagesPathURL , std::string outp
       errorCode = EC_NO_IMAGE ;
       return false;
     }
-    addSampleToCalibration(image);
+    addSampleToCalibration(image, errorCode);
   }
   return calibrateCamera(outputCalibrationDataURL, errorCode);
 }
 
-bool Core::saveCalibration(std::string outputURL, int &errorCode){
+bool Core::saveCalibration(std::string outputURL, u_int8_t &errorCode){
 
   cv::FileStorage outputFile(outputURL, FileStorage::WRITE);
   if(!outputFile.isOpened()){
@@ -117,7 +116,7 @@ bool Core::saveCalibration(std::string outputURL, int &errorCode){
   return true;
 }
 
-bool Core::loadCalibration(std::string inputURL, int &errorCode){
+bool Core::loadCalibration(std::string inputURL, u_int8_t &errorCode){
 
     cv::FileStorage inputFile(inputURL, FileStorage::READ);
     if(!inputFile.isOpened()){
@@ -130,7 +129,7 @@ bool Core::loadCalibration(std::string inputURL, int &errorCode){
     return true;
 }
 
-bool Core::addImgToOdometry(cv::Mat img, int &errorCode, bool replace){
+bool Core::addImgToOdometry(cv::Mat img, u_int8_t &errorCode, bool replace){
 
   if(viso == NULL){
     errorCode = EC_VISO_IS_NULL;
@@ -139,14 +138,6 @@ bool Core::addImgToOdometry(cv::Mat img, int &errorCode, bool replace){
 
   if(!isCalibrationDone){
     errorCode = EC_NO_CALIBRATION;
-    return false;
-  }
-  if(!isSetImageSizeDone){
-    errorCode = EC_NO_IMAGE_SIZE;
-    return false;
-  }
-  if(img.cols != imageSize.width || img.rows!=imageSize.height){
-    errorCode = EC_BAD_IMAGE_SIZE;
     return false;
   }
 
@@ -160,12 +151,15 @@ bool Core::addImgToOdometry(cv::Mat img, int &errorCode, bool replace){
   if (viso->process(img.datastart, dims,errorCode, replace)) { //TO DO Sprawdz jak sie zachowuje error code w viso obiekcie
     pose = pose* Matrix::inv(viso->getMotion());
     errorCode = EC_OK;
+
     return true;
   }
+  qDebug()<<"INLIERS"<<viso->getNumberOfInliers();
+  qDebug()<<"MATCHES"<<viso->getNumberOfMatches();
   return false;
 }
 
-bool Core::setPatternSize(cv::Size x, int &errorCode){
+bool Core::setPatternSize(cv::Size x, u_int8_t &errorCode){
   if(x.height>=minimumPatternSizeHeight && x.width>=minimumPatternSizeWidth){
     patternSize = x;
     isSetPatternSizeDone = true;
@@ -175,7 +169,7 @@ bool Core::setPatternSize(cv::Size x, int &errorCode){
   errorCode = EC_BAD_SIZE;
   return false;
 }
-bool Core::createVisualOdometryMonoObject(int &errorCode){
+bool Core::createVisualOdometryMonoObject(u_int8_t &errorCode){
   if(isCalibrationDone){
     VisualOdometryMono::parameters param;
 
@@ -183,7 +177,11 @@ bool Core::createVisualOdometryMonoObject(int &errorCode){
     param.calib.cu = cameraMatrix.at<double>(2); // principal point (u-coordinate) in pixels
     param.calib.cv = cameraMatrix.at<double>(5); // principal point (v-coordinate) in pixels
 
+    if(viso != NULL)
+      delete viso;
     viso=new VisualOdometryMono(param);
+    resetPose();
+
     errorCode = EC_OK ;
     return true;
   }
@@ -192,14 +190,23 @@ bool Core::createVisualOdometryMonoObject(int &errorCode){
 }
 void Core::changeInternalParameters(double height,
                                     double pitch,
+                                    u_int8_t &errorCode,
                                     int32_t ransac_iters,
                                     double inlier_threshold,
                                     double motion_threshold){
+  if(viso == NULL){
+    errorCode = EC_VISO_IS_NULL;
+    return;
+  }
+  qDebug()<<"Height"<<height;
+  qDebug()<<"Pitch"<<pitch;
   viso->param.height = height;
   viso->param.pitch = pitch;
   viso->param.ransac_iters = ransac_iters;
   viso->param.inlier_threshold = inlier_threshold;
   viso->param.motion_threshold = motion_threshold;
+
+    errorCode = EC_OK;
 }
 void Core::resetPose(){
   pose = Matrix::eye(4);

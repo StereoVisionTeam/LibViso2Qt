@@ -6,6 +6,7 @@
 
 QT       += core
 
+QT += network
 QT       -= gui
 
 TARGET = LibViso2Qt
@@ -14,20 +15,20 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-
-
-
 QMAKE_CXXFLAGS += -msse3
 
 SOURCES += main.cpp \
     core.cpp \
-    tcpserver.cpp \
     application.cpp
+
+HEADERS +=     core.h \
+    errorcodes.h \
+    application.h \
+    functioncodes.h
 
 LIBS += -lpng
 
-HEADERS += libviso2/demo.h \
-	   libviso2/filter.h \
+HEADERS += libviso2/filter.h \
 	   libviso2/matcher.h \
 	   libviso2/matrix.h \
 	   libviso2/reconstruction.h \
@@ -35,10 +36,7 @@ HEADERS += libviso2/demo.h \
 	   libviso2/viso.h \
 	   libviso2/viso_mono.h \
 	   libviso2/viso_stereo.h \
-    core.h \
-    errorcodes.h \
-    tcpserver.h \
-    application.h
+
 
 SOURCES += libviso2/filter.cpp \
 	   libviso2/matcher.cpp \

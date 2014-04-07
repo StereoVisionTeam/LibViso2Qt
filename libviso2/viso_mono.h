@@ -37,8 +37,8 @@ public:
     double                      inlier_threshold; // fundamental matrix inlier threshold
     double                      motion_threshold; // directly return false on small motions
     parameters () {
-      height           = 1.7;
-      pitch            = -0.03;
+      height           = 0.65;
+      pitch            = 0.00;
       ransac_iters     = 2000;
       inlier_threshold = 0.00001;
       motion_threshold = 100.0;
@@ -63,7 +63,7 @@ public:
   //                     when small/no motions are observed to obtain Tr_delta wrt
   //                     an older coordinate system / time step than the previous one.
   // output: returns false if motion too small or an error occured
-  bool process (uint8_t *I,int32_t* dims, int &errorCode, bool replace=false);
+  bool process (uint8_t *I, int32_t* dims,u_int8_t &errorCode, bool replace=false );
 
   // parameters
   parameters param;
@@ -76,7 +76,7 @@ private:
     const T arr;
   };  
 
-  std::vector<double>  estimateMotion (std::vector<Matcher::p_match> p_matched);  
+  std::vector<double>  estimateMotion (std::vector<Matcher::p_match> p_matched, u_int8_t &errorCode);
   Matrix               smallerThanMedian (Matrix &X,double &median);
   bool                 normalizeFeaturePoints (std::vector<Matcher::p_match> &p_matched,Matrix &Tp,Matrix &Tc);
   void                 fundamentalMatrix (const std::vector<Matcher::p_match> &p_matched,const std::vector<int32_t> &active,Matrix &F);

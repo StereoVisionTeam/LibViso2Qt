@@ -39,10 +39,10 @@ VisualOdometry::~VisualOdometry () {
   delete matcher;
 }
 
-bool VisualOdometry::updateMotion () {
+bool VisualOdometry::updateMotion (u_int8_t &errorCode) {
   
   // estimate motion
-  vector<double> tr_delta = estimateMotion(p_matched);
+  vector<double> tr_delta = estimateMotion(p_matched, errorCode);
   
   // on failure
   if (tr_delta.size()!=6){
