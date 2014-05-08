@@ -36,6 +36,7 @@ public:
                            int numberOfSamples,
                            u_int8_t &errorCode);
 
+  void undistortImage(cv::Mat &frame);
 //Odometry
   bool addImgToOdometry(cv::Mat img, u_int8_t &errorCode, bool replace=false);
   bool createVisualOdometryMonoObject(u_int8_t &errorCode);
@@ -46,10 +47,9 @@ public:
                                 int32_t ransac_iters = 2000,     // number of RANSAC iterations
                                 double inlier_threshold = 0.00001, // fundamental matrix inlier threshold
                                 double motion_threshold = 100.0); // directly return false on small motions
-
   void resetPose();
-
-  cv::Mat cameraMatrix, distCoeffs;
+  cv::Mat cameraMatrix, distCoeffs, map1, map2;
+  cv::Size imageSize;
 private:
 
   std::ofstream fileWithOdometry;
@@ -69,7 +69,6 @@ private:
 //Odometry
   VisualOdometryMono *viso;
 
-  cv::Size imageSize;
 };
 
 #endif // CORE_H

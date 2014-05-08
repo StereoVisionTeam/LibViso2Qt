@@ -1,13 +1,13 @@
 #include "application.h"
 #include <iostream>
-std::string calibrationFile = "calibrationWiktor.xml";
-std::string odometryFile = "/home/haskis/Odometria_Korytarz.txt";
+std::string calibrationFile = "/home/haskis/calibrationWiktor.xml";
+std::string odometryFile = "odometria.csv";
 
 Application::Application(QObject *parent) :
   QObject(parent),
   myCore(this)
 {
-  i = 0;
+  //i = 0;
   pose = new double[24];
   myTcpSocket = NULL;
   myTcpServer = new QTcpServer(this);
@@ -48,7 +48,6 @@ void Application::interpretRequest(){
   quint8 transactionID = (quint8)myArray[1];
   //Interpret data
   quint8 functionCode = (quint8)myArray[2];
-
   u_int8_t errorCode = EC_OK;
   switch (functionCode){
     case SET_PATTERN_SIZE:{
@@ -64,7 +63,7 @@ void Application::interpretRequest(){
     case OPEN_VIDEO:{
       if(length != 0)
         return;
-      openVideo(0, errorCode);
+      openVideo(1, errorCode);
       QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
       myTcpSocket->write(response);
       myTcpSocket->flush();
@@ -157,7 +156,7 @@ void Application::interpretRequest(){
 //      myCore.addImgToOdometry(frame,errorCode,false);
 //      file << myCore.pose<<std::endl;
 //      }
-      myCore.addImgToOdometry(frame,errorCode,false);
+      myCore.addImgToOdometry(frame,errorCode);
       QByteArray response = formatHeaderResponse(transactionID,functionCode,errorCode);
 
       char poseLength = 12 * sizeof(double);
@@ -245,6 +244,43 @@ bool Application::openVideo(int id, u_int8_t &errorCode){
   else errorCode = EC_OK;
     return true;
 }
+
+void Application::continuousStream(){
+
+  delayTimer->stop();
+  quint8 errorCode = EC_OK;
+  quint8 functionCode = CONTINUOUS_STREAM;
+  if(!continuousStreamState)
+    return;
+  if(!myVideoCapture.isOpened()){
+    errorCode = EC_NO_VIDEO;
+    return ;
+  }
+
+  myVideoCapture >> frame;
+  myVideoCapture >> frame;
+  myVideoCapture >> frame;
+  myVideoCapture >> frame;
+  myVideoCapture >> frame;
+
+  myCore.addImgToOdometry(frame,errorCode);
+
+  QByteArray response = formatHeaderResponse(transactionIDStream,functionCode,errorCode);
+
+  char poseLength = 12 * sizeof(double);
+
+  response.push_back((char)poseLength);
+  myCore.pose.getData(pose);
+
+  for(int i=0;i<poseLength;i++)
+    response.push_back(*(reinterpret_cast<char*>(pose)+i));
+  response.push_back(STOP_BYTE);
+
+  myTcpSocket->write(response);
+  myTcpSocket->flush();
+
+  delayTimer->start(20);
+}
 QByteArray Application::formatIdleResponse(u_int8_t transactionID, u_int8_t functionCode, u_int8_t errorCode){
   QByteArray response;
   response.push_back(START_BYTE);
@@ -273,43 +309,5 @@ QByteArray Application::formatHeaderResponse(u_int8_t transactionID, u_int8_t fu
     response.push_back(functionCode + 0x80);
 
   response.push_back(errorCode);
-
   return response;
-}
-
-void Application::continuousStream(){
-
-  delayTimer->stop();
-  quint8 errorCode = EC_OK;
-  quint8 functionCode = CONTINUOUS_STREAM;
-  if(!continuousStreamState)
-    return;
-  if(!myVideoCapture.isOpened()){
-    errorCode = EC_NO_VIDEO;
-    return ;
-  }
-
-  myVideoCapture >> frame;
-  myVideoCapture >> frame;
-  myVideoCapture >> frame;
-  myVideoCapture >> frame;
-  myVideoCapture >> frame;
-
-  myCore.addImgToOdometry(frame,errorCode,false);
-
-  QByteArray response = formatHeaderResponse(transactionIDStream,functionCode,errorCode);
-
-  char poseLength = 12 * sizeof(double);
-
-  response.push_back((char)poseLength);
-  myCore.pose.getData(pose);
-
-  for(int i=0;i<poseLength;i++)
-    response.push_back(*(reinterpret_cast<char*>(pose)+i));
-  response.push_back(STOP_BYTE);
-
-  myTcpSocket->write(response);
-  myTcpSocket->flush();
-
-  delayTimer->start(20);
 }

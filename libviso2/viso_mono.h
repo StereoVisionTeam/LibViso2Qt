@@ -37,7 +37,7 @@ public:
     double                      inlier_threshold; // fundamental matrix inlier threshold
     double                      motion_threshold; // directly return false on small motions
     parameters () {
-      height           = 0.65;
+      height           = 0.30;
       pitch            = 0.00;
       ransac_iters     = 2000;
       inlier_threshold = 0.00001;
