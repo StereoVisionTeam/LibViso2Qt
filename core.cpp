@@ -148,14 +148,14 @@ bool Core::addImgToOdometry(cv::Mat img, u_int8_t &errorCode, bool replace){
 
   // compute visual odometry
 
-  if (viso->process(img.datastart, dims,errorCode, replace)) { //TO DO Sprawdz jak sie zachowuje error code w viso obiekcie
+  if (viso->process(img.datastart, dims,errorCode, replace)) {
     pose = pose* Matrix::inv(viso->getMotion());
     errorCode = EC_OK;
 
     return true;
   }
-  qDebug()<<"INLIERS"<<viso->getNumberOfInliers();
-  qDebug()<<"MATCHES"<<viso->getNumberOfMatches();
+  std::cout<<"INLIERS"<<viso->getNumberOfInliers();
+  std::cout<<"MATCHES"<<viso->getNumberOfMatches();
   return false;
 }
 

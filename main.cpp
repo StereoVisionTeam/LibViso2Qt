@@ -15,8 +15,7 @@ int main(int argc, char *argv[])
   return a.exec();
 }
 
-
-
+//Fragmenty poprzedniej wersji do wczytywania danych z pliku, jescze bez bibliioteki Qt
 //int main()
 //{
 //  Application myApplication;
