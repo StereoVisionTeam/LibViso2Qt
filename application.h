@@ -27,11 +27,12 @@ private:
 
   cv::VideoCapture myVideoCapture;
   cv::Mat frame;
-  bool openVideo(int id, u_int8_t &errorCode);
-  bool updateFrame(u_int8_t &errorCode);
   double *pose;
   int i;
   QTimer *delayTimer;
+
+  bool openVideo(int id, u_int8_t &errorCode);
+  bool updateFrame(u_int8_t &errorCode);
 
 private slots:
   void disconnected();
@@ -43,7 +44,6 @@ private slots:
 private:
   bool continuousStreamState;
   bool transactionIDStream;
-  //void streamStep();
 };
 
 #endif // APPLICATION_H

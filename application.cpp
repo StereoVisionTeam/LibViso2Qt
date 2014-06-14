@@ -9,6 +9,7 @@ Application::Application(QObject *parent) :
 {
   //i = 0;
   pose = new double[24];
+
   myTcpSocket = NULL;
   myTcpServer = new QTcpServer(this);
   connect(this->myTcpServer, SIGNAL(newConnection()), this, SLOT(newConnection()));
@@ -20,7 +21,7 @@ Application::Application(QObject *parent) :
 void Application::newConnection(){
   qDebug()<<"New Connection";
   if(myTcpSocket != NULL)
-  myTcpSocket->deleteLater();
+    myTcpSocket->deleteLater();
   myTcpSocket = myTcpServer->nextPendingConnection();
   connect(this->myTcpSocket, SIGNAL(readyRead()), this, SLOT(interpretRequest()));
 }
@@ -30,30 +31,37 @@ void Application::disconnected(){
 }
 void Application::interpretRequest(){
   myArray = myTcpSocket->readAll();
-  //for(int i=0;i<myArray.size();i++)
-    //qDebug()<<(quint8)myArray[i];
 
-
+  //Request must be at least 5 bytes long
   if(myArray.size()<5)
     return;
 
+  //First and last bytes od data must be correct
   if((quint8)myArray[0] != START_BYTE ||
      (quint8)myArray[(myArray.size()-1)] != STOP_BYTE)
     return;
 
+  //Check is incoming array has proper length
   quint8 length= (quint8)myArray[3];
   if((quint8)myArray.size() != 5+length)
     return;
 
+  //We dont use transactionID yet.
   quint8 transactionID = (quint8)myArray[1];
+
   //Interpret data
   quint8 functionCode = (quint8)myArray[2];
+
+  //We initialize errorCode to good value, we change it if something bad happens
   u_int8_t errorCode = EC_OK;
+
+  //Interpret function Code
   switch (functionCode){
     case SET_PATTERN_SIZE:{
       if(length != 2)
         return;
       myCore.setPatternSize(cv::Size(quint8(myArray[4]),quint8(myArray[5])),errorCode);
+
       QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
       myTcpSocket->write(response);
       myTcpSocket->flush();
@@ -63,7 +71,8 @@ void Application::interpretRequest(){
     case OPEN_VIDEO:{
       if(length != 0)
         return;
-      openVideo(1, errorCode);
+      openVideo(0, errorCode);
+
       QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
       myTcpSocket->write(response);
       myTcpSocket->flush();
@@ -75,7 +84,6 @@ void Application::interpretRequest(){
       updateFrame(errorCode);
 
       QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
-
       myTcpSocket->write(response);
       myTcpSocket->flush();
 
@@ -84,17 +92,17 @@ void Application::interpretRequest(){
     case ADD_SAMPLE_TO_CALIBRATION:{
       if(length != 0)
         return;
-
       myCore.addSampleToCalibration(frame,errorCode);
+
       QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
       myTcpSocket->write(response);
       myTcpSocket->flush();
-
       break;
     }
     case CALIBRATE_CAMERA:{
       if(length != 0)
         return;
+
       QByteArray response;
       if(myCore.calibrateCamera(calibrationFile,errorCode)){
           response = formatHeaderResponse(transactionID,functionCode,errorCode);
@@ -102,12 +110,14 @@ void Application::interpretRequest(){
           char calibrationDataLength = 9 * sizeof(double);
           response.push_back((char)calibrationDataLength);
 
+          //We send back calibration data to client application
           for(int i=0;i<calibrationDataLength;i++)
             response.push_back(*(myCore.cameraMatrix.data +i));
           response.push_back(STOP_BYTE);
         }
       else
         response = formatIdleResponse(transactionID,functionCode,errorCode);
+
       myTcpSocket->write(response);
       myTcpSocket->flush();
       break;
@@ -115,6 +125,7 @@ void Application::interpretRequest(){
     case LOAD_CALIBRATION:{
       if(length != 0)
         return;
+
       QByteArray response;
       if(myCore.loadCalibration(calibrationFile,errorCode)){
           response = formatHeaderResponse(transactionID, functionCode, errorCode);
@@ -132,14 +143,14 @@ void Application::interpretRequest(){
       break;
     }
     case CREATE_VISO_OBJECT:{
-        if(length != 0)
-          return;
-        myCore.createVisualOdometryMonoObject(errorCode);
-        QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
-        myTcpSocket->write(response);
-        myTcpSocket->flush();
-        break;
-      }
+      if(length != 0)
+        return;
+      myCore.createVisualOdometryMonoObject(errorCode);
+      QByteArray response = formatIdleResponse(transactionID,functionCode,errorCode);
+      myTcpSocket->write(response);
+      myTcpSocket->flush();
+      break;
+    }
     case ADD_IMG_TO_ODOMETRY:{
       if(length != 0)
         return;
@@ -256,7 +267,6 @@ void Application::continuousStream(){
     errorCode = EC_NO_VIDEO;
     return ;
   }
-
   myVideoCapture >> frame;
   myVideoCapture >> frame;
   myVideoCapture >> frame;

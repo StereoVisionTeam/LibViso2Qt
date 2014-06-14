@@ -43,10 +43,8 @@ public:
 
 //Parameters
   void changeInternalParameters(double height,           // camera height above ground (meters)
-                                double pitch, u_int8_t &errorCode,            // camera pitch (rad, negative=pointing down)
-                                int32_t ransac_iters = 2000,     // number of RANSAC iterations
-                                double inlier_threshold = 0.00001, // fundamental matrix inlier threshold
-                                double motion_threshold = 100.0); // directly return false on small motions
+                                double pitch, u_int8_t &errorCode);            // camera pitch (rad, negative=pointing down)
+
   void resetPose();
   cv::Mat cameraMatrix, distCoeffs, map1, map2;
   cv::Size imageSize;
@@ -68,7 +66,6 @@ private:
   cv::vector<cv::vector<cv::Point2f> > imagePoints;
 //Odometry
   VisualOdometryMono *viso;
-
 };
 
 #endif // CORE_H

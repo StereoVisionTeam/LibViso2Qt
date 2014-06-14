@@ -111,6 +111,7 @@ vector<double> VisualOdometryMono::estimateMotion (vector<Matcher::p_match> p_ma
       errorCode = EC_NOT_ENOUGH_XPLANE_POINTS;
     return vector<double>();
   }
+
   // get elements closer than median
   double median;
   smallerThanMedian(X_plane,median);

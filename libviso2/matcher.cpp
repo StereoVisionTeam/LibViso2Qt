@@ -889,10 +889,11 @@ void Matcher::createIndexVector (int32_t* m,int32_t n,vector<int32_t> *k,const i
   }
 }
 
+
 inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const int32_t &step_size,vector<int32_t> *k2,
                                 const int32_t &u_bin_num,const int32_t &v_bin_num,const int32_t &stat_bin,
                                 int32_t& min_ind,int32_t stage,bool flow,bool use_prior,double u_,double v_) {
-  
+
   // init and load image coordinates + feature
   min_ind          = 0;
   double  min_cost = 10000000;
@@ -901,16 +902,16 @@ inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const 
   int32_t c        = *(m1+step_size*i1+3);
   __m128i xmm1     = _mm_load_si128((__m128i*)(m1+step_size*i1+4));
   __m128i xmm2     = _mm_load_si128((__m128i*)(m1+step_size*i1+8));
-  
+
   float u_min,u_max,v_min,v_max;
-  
+
   // restrict search range with prior
   if (use_prior) {
     u_min = u1+ranges[stat_bin].u_min[stage];
     u_max = u1+ranges[stat_bin].u_max[stage];
     v_min = v1+ranges[stat_bin].v_min[stage];
     v_max = v1+ranges[stat_bin].v_max[stage];
-    
+
   // otherwise: use full search space
   } else {
     u_min = u1-param.match_radius;
@@ -918,19 +919,19 @@ inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const 
     v_min = v1-param.match_radius;
     v_max = v1+param.match_radius;
   }
-  
+
   // if stereo search => constrain to 1d
   if (!flow) {
     v_min = v1-param.match_disp_tolerance;
     v_max = v1+param.match_disp_tolerance;
   }
-  
+
   // bins of interest
   int32_t u_bin_min = min(max((int32_t)floor(u_min/(float)param.match_binsize),0),u_bin_num-1);
   int32_t u_bin_max = min(max((int32_t)floor(u_max/(float)param.match_binsize),0),u_bin_num-1);
   int32_t v_bin_min = min(max((int32_t)floor(v_min/(float)param.match_binsize),0),v_bin_num-1);
   int32_t v_bin_max = min(max((int32_t)floor(v_max/(float)param.match_binsize),0),v_bin_num-1);
-  
+
   // for all bins of interest do
   for (int32_t u_bin=u_bin_min; u_bin<=u_bin_max; u_bin++) {
     for (int32_t v_bin=v_bin_min; v_bin<=v_bin_max; v_bin++) {
@@ -940,19 +941,19 @@ inline void Matcher::findMatch (int32_t* m1,const int32_t &i1,int32_t* m2,const 
         int32_t v2   = *(m2+step_size*(*i2_it)+1);
         if (u2>=u_min && u2<=u_max && v2>=v_min && v2<=v_max) {
           __m128i xmm3 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+4));
-          __m128i xmm4 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+8));                    
+          __m128i xmm4 = _mm_load_si128((__m128i*)(m2+step_size*(*i2_it)+8));
           xmm3 = _mm_sad_epu8 (xmm1,xmm3);
           xmm4 = _mm_sad_epu8 (xmm2,xmm4);
           xmm4 = _mm_add_epi16(xmm3,xmm4);
           double cost = (double)(_mm_extract_epi16(xmm4,0)+_mm_extract_epi16(xmm4,4));
-          
+
           if (u_>=0 && v_>=0) {
             double du = (double)u2-u_;
             double dv = (double)v2-v_;
             double dist = sqrt(du*du+dv*dv);
             cost += 4*dist;
           }
-          
+
           if (cost<min_cost) {
             min_ind  = *i2_it;
             min_cost = cost;
